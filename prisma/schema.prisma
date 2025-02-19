@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* model Message {
+  id        String   @id @default(uuid())
+  userId    String   // ID do usuário do WhatsApp
+  threadId  String   // ID da thread no OpenAI
+  content   String   // Mensagem enviada pelo usuário
+  createdAt DateTime @default(now())
+
+  // Relacionamento com o usuário
+  Thread Thread @relation(fields: [threadId], references: [id])
+}
+ */
+
+model Thread {
+  id          String   @id @default(cuid())
+  userId      String   @unique  // ID do usuário no WhatsApp
+  assistantId String   // ID do assistente
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model Assistant {
+  id        String @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

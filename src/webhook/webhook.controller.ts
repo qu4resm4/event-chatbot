@@ -1,13 +1,12 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { AssistantsService } from '../assistants/assistants.service';
-import { SendMessageDto } from 'src/dto/send-message.dto';
+import { WebhookService } from './webhook.service';
 
 @Controller('webhook')
 export class WebhookController {
-  constructor(private assistantsService: AssistantsService) {}
+  constructor(private readonly webhookService: WebhookService) {}
 
-  @Post('message')
-  async handleMessage(@Body() dto: SendMessageDto): Promise<string> {
-    return this.assistantsService.sendMessageToAssistant(dto);
+  @Post()
+  mensagemRecebida(@Body() mensagemRecebidaDto: any) {
+    return this.webhookService.resposta(mensagemRecebidaDto);
   }
 }

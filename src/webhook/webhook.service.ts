@@ -53,6 +53,7 @@ export class WebhookService {
           whatsapp: requisição de resposta
 
           TO-DO
+          -- testar se o nest funciona no glitch 
           -- terminar lógica do webhook
           -- criar cache e seus métodos.
           -- métodos de conexão com a API da OpeanAI

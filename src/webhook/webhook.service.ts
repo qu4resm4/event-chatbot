@@ -36,7 +36,7 @@ export class WebhookService {
         await this.whatsappSrvc.visualizarMensagem(numeroComercialDoChatBot, mensagemRecebida);
 
         // cache: verificar id do usuário whatsapp do cache
-        const threadDoUsuario = this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+        let threadDoUsuario = await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
 
         // se id_thread corresponde igual a false (inexistente)
         if(!threadDoUsuario) {
@@ -44,14 +44,32 @@ export class WebhookService {
           const idThreadCriada = await this.openai.criarThread();
           // vincula os ids no cache
           await this.cache.vincularIdWhatsappAoIdThread(idDoRemetente, idThreadCriada)
+          threadDoUsuario = await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
         }
 
-        /* O QUE FALTA AQUI  
-          openai: cria uma run da thread (url) e associa o id do assistente no body da requisição
-          openai: executa um polling para verificar se a run terminou de ser processada
-          openai: busca a mensagem da thread com o parâmetro de filtro para filtrar pelo run_id, ou seja, pegar a mensagem gerada pela run que executou ela (assim vai buscar exatamente a mensagem de resposta do assistente)
-          whatsapp: requisição de resposta
+        // adicionando mensagem na thread
+        await this.openai.adicionarMensagemNaThread(threadDoUsuario, textoMensagem);
 
+        // cria a run que irá executar a análise da thread pelo assistent
+        const idRunCriada= await this.openai.criarRunParaThread(threadDoUsuario);
+
+        // polling para verificar status da run, o script prosseguirá apenas depois do status completed da run
+        let statusDaRun = true;
+        while(statusDaRun) {
+          setTimeout(async () => {
+            let status = await this.openai.verificarStatusDaRun(idRunCriada)
+            if(status == 'completed') {
+              console.log("Run status completed")
+              statusDaRun = false
+            }
+          }, 200); // dois milisegundos (0.2s); 1000 = 1s
+        }
+
+        let resposta = await this.openai.obterRespostaDoAssistent(idRunCriada);
+
+        await this.whatsappSrvc.responderMensagem(numeroComercialDoChatBot, remetenteDaMensagem, resposta)
+
+        /* 
           TO-DO
           -- testar se o nest funciona no glitch 
           -- terminar lógica do webhook

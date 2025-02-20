@@ -8,7 +8,7 @@ dotenv.config();
 export class WhatsappService {
   private token = process.env.WHATSAPP_ACCESS_TOKEN;
   private phoneNumberId = process.env.WHATSAPP_BUSINESS_ID;
-  private apiUrl = `https://graph.facebook.com/v17.0/${this.phoneNumberId}/messages`;
+  private apiUrl = `https://graph.facebook.com/v21.0/${this.phoneNumberId}/messages`;
 
   async sendMessage(to: string, message: string) {
     try {

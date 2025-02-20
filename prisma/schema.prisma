@@ -7,29 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/* model Message {
+model Assistant {
   id        String   @id @default(uuid())
-  userId    String   // ID do usuário do WhatsApp
-  threadId  String   // ID da thread no OpenAI
-  content   String   // Mensagem enviada pelo usuário
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relacionamento com o usuário
-  Thread Thread @relation(fields: [threadId], references: [id])
+  threads   Thread[] 
 }
- */
 
 model Thread {
   id          String   @id @default(cuid())
   userId      String   @unique  // ID do usuário no WhatsApp
   assistantId String   // ID do assistente
+  assistant   Assistant @relation(fields: [assistantId], references: [id]) // Relação explícita com o Assistent
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 
-model Assistant {
-  id        String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// O assistente pode ter várias threads, mas cada thread está vinculada a apenas um assistente

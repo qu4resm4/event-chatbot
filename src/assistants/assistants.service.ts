@@ -5,6 +5,8 @@ import { SendMessageDto } from 'src/dto/send-message.dto';
 
 @Injectable()
 export class AssistantsService implements OnModuleInit {
+  // pra que serve o private e o this?
+  // pra que serve o constructor?
   private openai: OpenAI;
   private assistantId: string;
 
@@ -16,7 +18,7 @@ export class AssistantsService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     try {
-      // Verifica se já existe um assistente no banco
+      // Verifica se já existe um assistente no banco// se ele ja existir, nao precisar criar outro, mexer o codigo
       const existingAssistant = await this.prisma.assistant.findFirst();
       if (existingAssistant) {
         this.assistantId = existingAssistant.id;
@@ -33,13 +35,13 @@ export class AssistantsService implements OnModuleInit {
   }
 
   // Função para criar um assistente
-  private async createAssistant(): Promise<void> {
+  private async createAssistant() {
     try {
       const myAssistant = await this.openai.beta.assistants.create({
-        instructions: `Você é um assistente inteligente, especializado em fornecer informações sobre times de futebol.`,
+        instructions: `Você é um assistente especializado em formatação de dados para IA. Sua tarefa é estruturar informações de palestras em um JSON multilíngue padronizado, incluindo formatação localizada de data e horário.`,
         name: 'Guide Assistant',
         tools: [{ type: 'code_interpreter' }],
-        model: 'gpt-4', // Modelo da OpenAI
+        model: 'gpt-3.5-turbo', // Modelo da OpenAI
       });
 
       this.assistantId = myAssistant.id;
@@ -59,6 +61,7 @@ export class AssistantsService implements OnModuleInit {
 
   // Função para enviar mensagem ao assistente
   async sendMessageToAssistant(dto: SendMessageDto): Promise<string> {
+    // verificar essa parte na documentaçao
     try {
       const threadId = await this.createThreadIfNotExist(dto.userId);
 
@@ -88,8 +91,8 @@ export class AssistantsService implements OnModuleInit {
     }
   }
 
-  // Verifica se o usuário já tem uma thread e a cria se não tiver
-  private async createThreadIfNotExist(userId: string): Promise<string> {
+  // Verifica se o usuário já tem uma thread e criar se não tiver
+  private async createThreadIfNotExist(userId: string) {
     try {
       const userThread = await this.prisma.thread.findUnique({
         where: { userId },

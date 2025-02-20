@@ -1,13 +1,31 @@
-import { Controller, Post, Body } from '@nestjs/common';
-import { AssistantsService } from '../assistants/assistants.service';
-import { SendMessageDto } from 'src/dto/send-message.dto';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { WebhookService } from './webhook.service';
 
-@Controller('webhook')
+@Controller('/webhook')
 export class WebhookController {
-  constructor(private assistantsService: AssistantsService) {}
+  constructor(private webhookService: WebhookService) {}
 
-  @Post('message')
-  async handleMessage(@Body() dto: SendMessageDto): Promise<string> {
-    return this.assistantsService.sendMessageToAssistant(dto);
+  @Get()
+  async verifyWebhook(
+    @Query('hub.mode') mode: string,
+    @Query('hub.challenge') challenge: string,
+    @Query('hub.verify_token') token: string,
+  ) {
+    const verify_token = 'tokenVerify'; // Token que você definiu
+
+    if (mode === 'subscribe' && token === verify_token) {
+      return challenge; // Retorna o challenge se o token de verificação for válido
+    }
+    return 'Erro na verificação do webhook';
+  }
+
+  @Post('/message')
+  async handleMessage(@Body() body: any) {
+    return await this.webhookService.processMessage(body);
+  }
+
+  @Get('/assistants') // Rota para consultar os assistentes
+  async getAssistants() {
+    return await this.webhookService.getAssistants();
   }
 }

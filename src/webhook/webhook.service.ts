@@ -1,13 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { AssistantsService } from '../assistants/assistants.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class WebhookService {
   constructor(
     private readonly whatsappService: WhatsappService,
     private readonly assistantsService: AssistantsService,
+    private readonly prismaService: PrismaService, // Injetando o PrismaService
   ) {}
+
+  async getAssistants() {
+    // Aqui você pode buscar os assistentes no banco
+    return await this.prismaService.assistant.findMany();
+  }
 
   async processMessage(body: any) {
     const message =

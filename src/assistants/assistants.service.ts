@@ -18,11 +18,10 @@ export class AssistantsService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     try {
-      // Verifica se já existe um assistente no banco// se ele ja existir, nao precisar criar outro, mexer o codigo
       const existingAssistant = await this.prisma.assistant.findFirst();
       if (existingAssistant) {
         this.assistantId = existingAssistant.id;
-        console.log('Assistente já existe, usando ID:', this.assistantId);
+        console.log('Assistente já existe, usando ID:1', this.assistantId);
       } else {
         console.log('Nenhum assistente encontrado. Criando um novo...');
         await this.createAssistant();
@@ -34,14 +33,13 @@ export class AssistantsService implements OnModuleInit {
     }
   }
 
-  // Função para criar um assistente
   private async createAssistant() {
     try {
       const myAssistant = await this.openai.beta.assistants.create({
         instructions: `Você é um assistente especializado em formatação de dados para IA. Sua tarefa é estruturar informações de palestras em um JSON multilíngue padronizado, incluindo formatação localizada de data e horário.`,
         name: 'Guide Assistant',
         tools: [{ type: 'code_interpreter' }],
-        model: 'gpt-3.5-turbo', // Modelo da OpenAI
+        model: 'gpt-4o',
       });
 
       this.assistantId = myAssistant.id;
@@ -59,31 +57,34 @@ export class AssistantsService implements OnModuleInit {
     }
   }
 
-  // Função para enviar mensagem ao assistente
   async sendMessageToAssistant(dto: SendMessageDto): Promise<string> {
-    // verificar essa parte na documentaçao
+    console.log('test2', dto.userId);
+
     try {
       const threadId = await this.createThreadIfNotExist(dto.userId);
+      console.log('thread id', threadId);
 
-      const response = await this.openai.beta.threads.messages.create(
-        threadId,
-        {
-          role: 'user',
-          content: dto.message,
-        },
-      );
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: dto.message }],
+        user: dto.userId, // Associando ao ID do usuário (opcional, dependendo da implementação)
+      });
 
-      const messageContent = response.content[0];
+      // Verifica se a resposta é válida
+      if (!response || !response.choices || response.choices.length === 0) {
+        throw new Error('Resposta inválida da OpenAI.');
+      }
 
-      // Verificação direta do tipo de conteúdo
-      if ('text' in messageContent) {
-        return messageContent.text.value || 'Não entendi.';
-      } else if ('image' in messageContent) {
-        const imageUrl = (messageContent as { image: { url: string } }).image
-          .url;
-        return `Aqui está a imagem: ${imageUrl}`;
+      console.log('Resposta da OpenAI:', response);
+
+      // A resposta da OpenAI normalmente estará dentro de response.choices[0].message.content
+      const messageContent = response.choices[0].message.content;
+      console.log('Mensagem enviada, conteúdo da resposta:', messageContent);
+
+      if (messageContent) {
+        return messageContent;
       } else {
-        return 'Recebido, mas não consigo processar este tipo de conteúdo.';
+        return 'Não entendi a resposta.';
       }
     } catch (error) {
       console.error('Erro ao enviar mensagem ao assistente:', error);
@@ -91,7 +92,6 @@ export class AssistantsService implements OnModuleInit {
     }
   }
 
-  // Verifica se o usuário já tem uma thread e criar se não tiver
   private async createThreadIfNotExist(userId: string) {
     try {
       const userThread = await this.prisma.thread.findUnique({
@@ -99,12 +99,14 @@ export class AssistantsService implements OnModuleInit {
       });
 
       if (!userThread) {
+        console.log('Nenhuma thread encontrada. Criando uma nova...');
         const newThread = await this.prisma.thread.create({
           data: { userId, assistantId: this.assistantId },
         });
+        console.log('Nova thread criada:', newThread);
         return newThread.id;
       }
-
+      console.log('Thread já existente encontrada:33', userThread.id);
       return userThread.id;
     } catch (error) {
       console.error('Erro ao criar ou recuperar a thread:', error);
@@ -112,3 +114,44 @@ export class AssistantsService implements OnModuleInit {
     }
   }
 }
+/* async sendMessageToAssistant(dto: SendMessageDto): Promise<string> {
+    console.log('test2', dto.userId);
+  
+    try {
+      // Primeiro, recuperamos ou criamos a thread
+      const threadId = await this.createThreadIfNotExist(dto.userId);
+      console.log('Enviando mensagem para a thread:', threadId);
+  
+      // Usando a OpenAI para enviar a mensagem, com o modelo GPT-3.5-turbo
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',  // Use o modelo correto, no caso GPT-3.5-turbo
+        messages: [
+          { role: 'user', content: dto.message }, // Mensagem do usuário
+        ],
+        user: dto.userId,  // Associando ao ID do usuário (opcional, dependendo da implementação)
+      });
+  
+      // Verifica se a resposta é válida
+      if (!response || !response.choices || response.choices.length === 0) {
+        throw new Error('Resposta inválida da OpenAI.');
+      }
+  
+      console.log('Resposta da OpenAI:', response);
+  
+      // A resposta da OpenAI normalmente estará dentro de response.choices[0].message.content
+      const messageContent = response.choices[0].message.content;
+      console.log('Mensagem enviada, conteúdo da resposta:', messageContent);
+  
+      // Verificação do tipo de conteúdo (se houver alguma modificação, pode ser no futuro)
+      if (messageContent) {
+        return messageContent;
+      } else {
+        return 'Não entendi a resposta.';
+      }
+  
+    } catch (error) {
+      console.error('Erro ao enviar mensagem ao assistente:', error);
+      throw new Error('Erro ao enviar mensagem ao assistente');
+    }
+  }
+   */

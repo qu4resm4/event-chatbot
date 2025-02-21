@@ -25,4 +25,5 @@ model Thread {
 }
 
 
+
 // O assistente pode ter várias threads, mas cada thread está vinculada a apenas um assistente

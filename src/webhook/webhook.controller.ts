@@ -1,9 +1,21 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { WebhookService } from './webhook.service';
+import { AssistantsService } from 'src/assistants/assistants.service';
 
 @Controller('/webhook')
 export class WebhookController {
-  constructor(private webhookService: WebhookService) {}
+  constructor(
+    private readonly webhookService: WebhookService,
+    private readonly assistantsService: AssistantsService,
+  ) {}
 
   @Get()
   async verifyWebhook(
@@ -11,21 +23,66 @@ export class WebhookController {
     @Query('hub.challenge') challenge: string,
     @Query('hub.verify_token') token: string,
   ) {
-    const verify_token = 'tokenVerify'; // Token que você definiu
-
-    if (mode === 'subscribe' && token === verify_token) {
-      return challenge; // Retorna o challenge se o token de verificação for válido
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!mode || !token) {
+      throw new HttpException('Parâmetros inválidos', HttpStatus.BAD_REQUEST);
     }
-    return 'Erro na verificação do webhook';
+
+    if (mode === 'subscribe' && token === verifyToken) {
+      return challenge;
+    }
+    throw new HttpException(
+      'Falha na verificação do webhook',
+      HttpStatus.FORBIDDEN,
+    );
   }
 
   @Post('/message')
   async handleMessage(@Body() body: any) {
-    return await this.webhookService.processMessage(body);
+    try {
+      if (!body) {
+        throw new HttpException('Body inválido', HttpStatus.BAD_REQUEST);
+      }
+      return await this.webhookService.processMessage(body);
+    } catch (error) {
+      console.error('Erro ao processar mensagem:', error);
+      throw new HttpException(
+        'Erro interno ao processar a mensagem',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
-  @Get('/assistants') // Rota para consultar os assistentes
+  @Get('/assistants')
   async getAssistants() {
-    return await this.webhookService.getAssistants();
+    try {
+      return await this.webhookService.getAssistants();
+    } catch (error) {
+      console.error('Erro ao buscar assistentes:', error);
+      throw new HttpException(
+        'Erro ao buscar assistentes',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('/test-chatgpt')
+  async testChatGPT(@Body() body: { userId: string; message: string }) {
+    try {
+      if (!body.userId || !body.message) {
+        throw new HttpException('Parâmetros inválidos', HttpStatus.BAD_REQUEST);
+      }
+      const response = await this.assistantsService.sendMessageToAssistant({
+        userId: body.userId,
+        message: body.message,
+      });
+      return { assistantResponse: response };
+    } catch (error) {
+      console.error('Erro ao testar ChatGPT:', error);
+      throw new HttpException(
+        'Falha ao obter resposta da IA',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

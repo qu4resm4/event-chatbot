@@ -12,11 +12,16 @@ export class WebhookService {
   ) {}
 
   async getAssistants() {
-    // Aqui você pode buscar os assistentes no banco
-    return await this.prismaService.assistant.findMany();
+    return await this.prismaService.assistant.findMany({
+      include: {
+        threads: true, // Inclui todas as threads relacionadas ao assistente
+      },
+    });
   }
 
   async processMessage(body: any) {
+    console.log(body);
+
     const message =
       body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body;
     const from = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
@@ -29,15 +34,29 @@ export class WebhookService {
           message: message,
         });
 
+        console.log(response);
+
         // Envia a resposta do assistente para o WhatsApp
         await this.whatsappService.sendMessage(from, response);
+
+        // 🔥 Retorna um JSON com os detalhes da requisição
+        return {
+          sender: from,
+          userMessage: message,
+          assistantResponse: response,
+        };
       } catch (error) {
         console.error('Erro ao processar a mensagem:', error);
-        await this.whatsappService.sendMessage(
-          from,
-          'Desculpe, algo deu errado!',
-        );
+
+        const errorMessage = 'Desculpe, algo deu errado!';
+        await this.whatsappService.sendMessage(from, errorMessage);
+
+        // 🔥 Retorna um JSON de erro
+        return { error: errorMessage };
       }
     }
+
+    // 🔥 Se não houver mensagem ou remetente, retorna um erro
+    return { error: 'Mensagem inválida' };
   }
 }

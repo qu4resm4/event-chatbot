@@ -5,71 +5,94 @@ import { WhatsappService } from 'src/whatsapp/whatsapp.service';
 
 @Injectable()
 export class WebhookService {
-
   constructor(
     private whatsappSrvc: WhatsappService,
     private cache: CacheService,
-    private openai: OpenaiService
-  ){}
+    private openai: OpenaiService,
+  ) {}
 
   async resposta(mensagemRecebidaDto: any) {
-      console.log("Incoming webhook message:", JSON.stringify(mensagemRecebidaDto.body, null, 2));
-      
-      // details on WhatsApp text message payload: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples#text-messages
-      const mensagemRecebida = mensagemRecebidaDto.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
+    console.log(
+      'Incoming webhook message:',
+      JSON.stringify(mensagemRecebidaDto, null, 2),
+    );
 
-      // mensagem de texto recebida
-      const textoMensagem = mensagemRecebida.text.body;
+    const mensagemRecebida =
+      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0];
 
-      const remetenteDaMensagem = mensagemRecebida.from;
+    const textoMensagem = mensagemRecebida.text.body;
+    const remetenteDaMensagem = mensagemRecebida.from;
 
-      const idDoRemetente = mensagemRecebidaDto.body.entry?.[0]?.changes[0]?.value?.contacts?.wa_id;
+    const idDoRemetente =
+      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.contacts?.wa_id;
 
-      // verifica se a mensagem recebida contém texto
-      if (mensagemRecebida?.type === "text") {
-  
-        // destinatário da mensagem do usuário, o número utilizado para receber mensagens pelo whatsapp
-        const numeroComercialDoChatBot =
-        mensagemRecebidaDto.body.entry?.[0].changes?.[0].value?.metadata?.phone_number_id;
-    
-        // método para mudar o estado da mensagem para visualizado
-        await this.whatsappSrvc.visualizarMensagem(numeroComercialDoChatBot, mensagemRecebida);
+    if (mensagemRecebida?.type === 'text') {
+      const numeroComercialDoChatBot =
+        mensagemRecebidaDto.entry?.[0].changes?.[0].value?.metadata
+          ?.phone_number_id;
 
-        // cache: verificar id do usuário whatsapp do cache
-        let threadDoUsuario = await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+      await this.whatsappSrvc.visualizarMensagem(
+        numeroComercialDoChatBot,
+        mensagemRecebida,
+      );
 
-        // se id_thread corresponde igual a false (inexistente)
-        if(!threadDoUsuario) {
-          // cria uma thread
-          const idThreadCriada = await this.openai.criarThread();
-          // vincula os ids no cache
-          await this.cache.vincularIdWhatsappAoIdThread(idDoRemetente, idThreadCriada)
-          threadDoUsuario = await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
-        }
+      // Cache: verificar id do usuário WhatsApp
+      let threadDoUsuario =
+        await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
 
-        // adicionando mensagem na thread
-        await this.openai.adicionarMensagemNaThread(threadDoUsuario, textoMensagem);
+      // Se a thread não existir (false), cria uma nova thread
+      if (!threadDoUsuario) {
+        const idThreadCriada = await this.openai.criarThread();
+        await this.cache.vincularIdWhatsappAoIdThread(
+          idDoRemetente,
+          idThreadCriada,
+        );
+        threadDoUsuario =
+          await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+      }
 
-        // cria a run que irá executar a análise da thread pelo assistent
-        const idRunCriada= await this.openai.criarRunParaThread(threadDoUsuario);
+      // Verifica se a thread foi realmente criada e se é uma string válida
+      if (typeof threadDoUsuario !== 'string') {
+        throw new Error('Erro: thread do usuário não encontrada ou inválida');
+      }
 
-        // polling para verificar status da run, o script prosseguirá apenas depois do status completed da run
-        let statusDaRun = true;
-        while(statusDaRun) {
-          setTimeout(async () => {
-            let status = await this.openai.verificarStatusDaRun(threadDoUsuario, idRunCriada)
-            if(status == 'completed') {
-              console.log("Run status completed")
-              statusDaRun = false
-            }
-          }, 200); // dois milisegundos (0.2s); 1000 = 1s
-        }
+      // Adicionando mensagem na thread
+      await this.openai.adicionarMensagemNaThread(
+        threadDoUsuario,
+        textoMensagem,
+      );
 
-        let resposta = await this.openai.obterRespostaDoAssistente(threadDoUsuario, idRunCriada);
+      const idRunCriada = await this.openai.criarRunParaThread(threadDoUsuario);
 
-        await this.whatsappSrvc.responderMensagem(numeroComercialDoChatBot, remetenteDaMensagem, resposta)
+      let statusDaRun = true;
+      while (statusDaRun) {
+        setTimeout(async () => {
+          const status = await this.openai.verificarStatusDaRun(
+            threadDoUsuario,
+            idRunCriada,
+          );
+          if (status === 'completed') {
+            console.log('Run status completed');
+            statusDaRun = false;
+          }
+        }, 200); // dois milisegundos (0.2s); 1000 = 1s
+      }
 
-        /* 
+      const resposta = await this.openai.obterRespostaDoAssistente(
+        threadDoUsuario,
+        idRunCriada,
+      );
+
+      await this.whatsappSrvc.responderMensagem(
+        numeroComercialDoChatBot,
+        remetenteDaMensagem,
+        resposta,
+      );
+    }
+  }
+}
+// fazer buscar por id pelo prisma do whatsapp/*  vincular o id com o da threadid*/
+/* 
           TO-DO
           -- testar se o nest funciona no glitch 
           -- terminar lógica do webhook
@@ -78,7 +101,4 @@ export class WebhookService {
           
           DONE
           -- métodos de conexão whatsapp
-        */
-      }
-    }
-}
+*/

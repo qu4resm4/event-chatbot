@@ -47,6 +47,19 @@ export class WebhookService {
           threadDoUsuario = await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
         }
 
+        /*
+          lógica de pegar o data hora da mensagem do whatsapp
+          ou pegar com o método aqui no serviço
+          e incluir em um formato de mensagem pro chatGPT
+          "
+            *MENSAGEM DO USUÁRIO*
+            {textoMensagem}
+
+            *DATA E HORA DE ENVIO*
+            {mensagemRecebida, }
+          "
+        */
+
         // adicionando mensagem na thread
         await this.openai.adicionarMensagemNaThread(threadDoUsuario, textoMensagem);
 

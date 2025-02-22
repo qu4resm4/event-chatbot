@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -87,7 +87,7 @@ Estrutura de respostas padrão:
     try {
       // Caminho do arquivo
       const filePath = path.join(
-        __dirname,
+        process.cwd(),
         process.env.PATH_ARQUIVO_PARA_BUSCA,
       );
 
@@ -183,10 +183,23 @@ Estrutura de respostas padrão:
 
   async obterRespostaDoAssistente(id_thread: string, run_id: string) {
     //get https://api.openai.com/v1/threads/{thread_id}/messages?run_id=run_id
-    const resposta = await this.openai.beta.threads.messages.list(id_thread, {
+    const mensagemDeRespostaDaRun = await this.openai.beta.threads.messages.list(id_thread, {
       run_id: run_id,
     });
-    console.log('o erro esta aqui2', resposta);
-    return resposta;
+
+    const idDaResposta = mensagemDeRespostaDaRun?.data[0]?.id;
+
+    const mensagemResposta = await this.openai.beta.threads.messages.retrieve(id_thread, idDaResposta);
+
+    // Verifica o tipo do conteúdo da mensagem
+  if (mensagemResposta?.content && Array.isArray(mensagemResposta.content)) {
+    // Procura por conteúdo de texto dentro do array
+    const texto = mensagemResposta.content.find(item => 'text' in item);
+
+    if (texto && 'text' in texto) {
+      console.log("Texto da resposta:", texto.text.value);
+      return texto.text.value;
+    }
+  }
   }
 }

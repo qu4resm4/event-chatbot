@@ -66,7 +66,7 @@ export class WebhookService {
 
       const idRunCriada = await this.openai.criarRunParaThread(threadDoUsuario);
 
-      const intervalo = 2000; // 200ms entre cada verificação
+      const intervalo = 2000; // dois milisegundos (0.2s); 1000 = 1s
 
       const intervalId = setInterval(async () => {
         try {
@@ -77,23 +77,24 @@ export class WebhookService {
 
           if (status === 'completed') {
             console.log('Run status completed');
+            let respostaDepoisDoStatusCompleto = await this.openai.obterRespostaDoAssistente(
+              threadDoUsuario,
+              idRunCriada,
+            );
+            
+            console.log("Resposta da mensagem: ", respostaDepoisDoStatusCompleto)
+            await this.whatsappSrvc.responderMensagem(
+              numeroComercialDoChatBot,
+              remetenteDaMensagem,
+              respostaDepoisDoStatusCompleto,
+            );
             clearInterval(intervalId); // Para o polling quando a condição for atendida
           }
         } catch (error) {
+          clearInterval(intervalId);
           console.error('Erro ao verificar status da run:', error);
         }
       }, intervalo);
-
-      const resposta = await this.openai.obterRespostaDoAssistente(
-        threadDoUsuario,
-        idRunCriada,
-      );
-
-      await this.whatsappSrvc.responderMensagem(
-        numeroComercialDoChatBot,
-        remetenteDaMensagem,
-        resposta,
-      );
     }
   }
 }

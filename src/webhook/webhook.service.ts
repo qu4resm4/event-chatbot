@@ -57,7 +57,7 @@ export class WebhookService {
         let statusDaRun = true;
         while(statusDaRun) {
           setTimeout(async () => {
-            let status = await this.openai.verificarStatusDaRun(idRunCriada)
+            let status = await this.openai.verificarStatusDaRun(threadDoUsuario, idRunCriada)
             if(status == 'completed') {
               console.log("Run status completed")
               statusDaRun = false
@@ -65,7 +65,7 @@ export class WebhookService {
           }, 200); // dois milisegundos (0.2s); 1000 = 1s
         }
 
-        let resposta = await this.openai.obterRespostaDoAssistent(idRunCriada);
+        let resposta = await this.openai.obterRespostaDoAssistente(threadDoUsuario, idRunCriada);
 
         await this.whatsappSrvc.responderMensagem(numeroComercialDoChatBot, remetenteDaMensagem, resposta)
 

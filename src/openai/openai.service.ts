@@ -99,26 +99,47 @@ export class OpenaiService {
     }
 
     async criarThread(){
-        let id_thread;
-        return id_thread
+      const thread = await this.openai.beta.threads.create();
+      console.log("Thread criada:", thread.id);
+      return thread.id;
     }
 
     async adicionarMensagemNaThread(id_thread, mensagem){
-
+      const message = await this.openai.beta.threads.messages.create(id_thread, {
+        role: "user",
+        content: mensagem,
+      });
+    
+      console.log("Mensagem adicionada:", message.id);
+      return message.id;
     }
 
     async criarRunParaThread(id_thread) {
         //pega o id do assistent das variaveis de ambiente
-        let id_run;
-        return id_run
+        const run = await this.openai.beta.threads.runs.create(id_thread, {
+          assistant_id: this.assistantID,
+        });
+      
+        console.log("Run criada:", run.id);
+        return run.id;
     }
 
-    async verificarStatusDaRun(run_id) {
+    async verificarStatusDaRun(id_thread, run_id) {
         //get https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}
-        return 'string'
+        const run = await this.openai.beta.threads.runs.retrieve(id_thread, run_id);
+        
+        console.log("Status da run criada:", run.status);
+
+        //completed
+        return run.status
     }
 
-    async obterRespostaDoAssistent(run_id){
+    async obterRespostaDoAssistente(id_thread, run_id){
         //get https://api.openai.com/v1/threads/{thread_id}/messages?run_id=run_id
+        const resposta = await this.openai.beta.threads.messages.list(id_thread, {
+          run_id: run_id,
+        });
+
+        return resposta;
     }
 }

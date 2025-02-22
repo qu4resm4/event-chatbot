@@ -22,7 +22,7 @@ export class WhatsappService {
   }
 
   async responderMensagem(
-    numeroComercialDoChatBot,
+    numeroComercialDoChatBot: string,
     remetenteDaMensagem,
     respostaAoRemetente,
   ) {

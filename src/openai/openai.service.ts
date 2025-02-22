@@ -129,10 +129,10 @@ export class OpenaiService {
 
   async verificarStatusDaRun(id_thread: string, run_id: string) {
     //get https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}
+    console.log('Status da run criada:');
+
     const run = await this.openai.beta.threads.runs.retrieve(id_thread, run_id);
-
     console.log('Status da run criada:', run.status);
-
     //completed
     return run.status;
   }
@@ -142,7 +142,7 @@ export class OpenaiService {
     const resposta = await this.openai.beta.threads.messages.list(id_thread, {
       run_id: run_id,
     });
-
+    console.log('o erro esta aqui2', resposta);
     return resposta;
   }
 }

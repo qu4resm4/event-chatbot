@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CacheService } from 'src/cache/cache.service';
+import { DatabaseService } from 'src/database/database.service';
 import { OpenaiService } from 'src/openai/openai.service';
 import { WhatsappService } from 'src/whatsapp/whatsapp.service';
 
@@ -7,7 +7,7 @@ import { WhatsappService } from 'src/whatsapp/whatsapp.service';
 export class WebhookService {
   constructor(
     private whatsappSrvc: WhatsappService,
-    private cache: CacheService,
+    private database: DatabaseService,
     private openai: OpenaiService,
   ) {}
 
@@ -24,7 +24,9 @@ export class WebhookService {
     const remetenteDaMensagem = mensagemRecebida.from;
 
     const idDoRemetente =
-      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.contacts?.wa_id;
+      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.contacts[0]?.wa_id;
+
+    console.log(idDoRemetente);
 
     if (mensagemRecebida?.type === 'text') {
       const numeroComercialDoChatBot =
@@ -38,17 +40,17 @@ export class WebhookService {
 
       // Cache: verificar id do usuário WhatsApp
       let threadDoUsuario =
-        await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+        await this.database.obterIdThreadPorIdWhatsapp(idDoRemetente);
 
       // Se a thread não existir (false), cria uma nova thread
       if (!threadDoUsuario) {
         const idThreadCriada = await this.openai.criarThread();
-        await this.cache.vincularIdWhatsappAoIdThread(
+        await this.database.vincularIdWhatsappAoIdThread(
           idDoRemetente,
           idThreadCriada,
         );
         threadDoUsuario =
-          await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+          await this.database.obterIdThreadPorIdWhatsapp(idDoRemetente);
       }
 
       // Verifica se a thread foi realmente criada e se é uma string válida
@@ -64,19 +66,23 @@ export class WebhookService {
 
       const idRunCriada = await this.openai.criarRunParaThread(threadDoUsuario);
 
-      let statusDaRun = true;
-      while (statusDaRun) {
-        setTimeout(async () => {
+      const intervalo = 2000; // 200ms entre cada verificação
+
+      const intervalId = setInterval(async () => {
+        try {
           const status = await this.openai.verificarStatusDaRun(
             threadDoUsuario,
             idRunCriada,
           );
+
           if (status === 'completed') {
             console.log('Run status completed');
-            statusDaRun = false;
+            clearInterval(intervalId); // Para o polling quando a condição for atendida
           }
-        }, 200); // dois milisegundos (0.2s); 1000 = 1s
-      }
+        } catch (error) {
+          console.error('Erro ao verificar status da run:', error);
+        }
+      }, intervalo);
 
       const resposta = await this.openai.obterRespostaDoAssistente(
         threadDoUsuario,

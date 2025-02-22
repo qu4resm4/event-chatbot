@@ -1,8 +1,23 @@
 # event-chatbot
 Este repositório contém o código-fonte de um chatbot com IA projetado para oferecer uma experiência mais orgânica e intuitiva na busca por palestras em eventos de grande porte.
 
+Comandos para rodar:
+npm install
+
+npx prisma generate
+
+criar um banco de dados postgresql com o nome 'chatbot'
+
+npx prisma migrate deploy
+
+nest start
+
+ngrok http 3000
+
 Exemplo de .env:
 ```
+    DATABASE_URL="postgresql://postgres:846612@localhost:5432/chatbot?schema=public"
+
     WEBHOOK_VERIFY_TOKEN=CHAVEdoWEBHOOK
     GRAPH_API_TOKEN=SoNaHoraCrieUmaSessao
     OPENAI_API_TOKEN=

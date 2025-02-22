@@ -68,17 +68,6 @@ export class WebhookService {
         let resposta = await this.openai.obterRespostaDoAssistente(threadDoUsuario, idRunCriada);
 
         await this.whatsappSrvc.responderMensagem(numeroComercialDoChatBot, remetenteDaMensagem, resposta)
-
-        /* 
-          TO-DO
-          -- testar se o nest funciona no glitch 
-          -- terminar lógica do webhook
-          -- criar cache e seus métodos.
-          -- métodos de conexão com a API da OpeanAI
-          
-          DONE
-          -- métodos de conexão whatsapp
-        */
       }
     }
 }

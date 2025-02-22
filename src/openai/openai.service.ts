@@ -20,7 +20,7 @@ export class OpenaiService {
     async onModuleInit(): Promise<void> {
         try {
           // verifica 
-          const assistenteDefinidoNoEnv = process.env.ID_ASSISTENT;
+          const assistenteDefinidoNoEnv = process.env.ID_ASSISTANT;
           if(assistenteDefinidoNoEnv !== ''){
             this.assistantID = assistenteDefinidoNoEnv;
           } else {

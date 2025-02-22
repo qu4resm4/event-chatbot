@@ -3,10 +3,11 @@ Este repositório contém o código-fonte de um chatbot com IA projetado para of
 
 Exemplo de .env:
 ```
-    WEBHOOK_VERIFY_TOKEN=
-    GRAPH_API_TOKEN=
+    WEBHOOK_VERIFY_TOKEN=CHAVEdoWEBHOOK
+    GRAPH_API_TOKEN=SoNaHoraCrieUmaSessao
     OPENAI_API_TOKEN=
-    ID_ASSISTENT=
+    ID_ASSISTANT=asst_sw6kRSlAgDhGzOv0nrXLyDSc
+    PATH_ARQUIVO_PARA_BUSCA=training-data/web_summit_rio_2025_schedule.json
 ```
 
 

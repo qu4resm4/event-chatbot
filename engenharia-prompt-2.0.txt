@@ -1,0 +1,144 @@
+Engenharia de prompt
+como extrair o máximo possível
+
+7 módulos:
+1.Fundamentos
+A ciência empírica de planejar, criar e testar prompts para gerar melhores respostas em Grandes Modelos de Linguagem(GML/LLM). 
+Qual a importância? R: É a meta-habilidade que destrava todas as outras.
+se você não deixa claro o que quer, não tem como saber.
+Simplicidade - Não complique além do necessário.
+Claude - familia de grandes modelos de linguagem
+Comece com o caro, que sao os melhores modelos, depois refine para a escala mais acessivel.
+A IA significaq que os computadores estão aprendendo nossa língua, em vez de termos que aprender a deles.
+Saber se expressar e comunicar boas ideias do que uma programação complexa.
+Pense mais a frente 1-2 anos, na solução.
+A melhor maneira de prever o futuro é inventá-lo.
+
+A Regra de Ouro
+Que instruções você daria para alguém fazer?
+
+2.PROMPT
+P persona - dar um contexto - Vc é um especialista em marketing, redes sociais e pscologia humana.
+R roteiro - Quero ajuda para criar um roteiro para um reels no instagram.
+O objetivo - Objetivo é chamar a atenção com uma história cativante e depois fazer uma chamada para se inscrever em nosso site no link do perfil.
+M modelo - Como quer que seja o resultado - Quero o resultado dividido em 8 ate 10 slides com sugestoes de imagens e design para cada um deles.
+P panorama - incluir informações como exemplos - meu cliente é um expert que vende cursos online e esta com dificuldades em escalar seu curso para alem dos 4-5 digitos(incluir o exemplo aqui)
+T transformar - Feedback - feito isso, agora voce melhora. Troca X, fax Y, adiciona tal.
+
+3.Processo
+3.1 Defina a tarefa e os critérios de sucesso
+ a) Desempenho e precisão: Quão bem o modelo precisa executar na tarefa? ex: a resposta pode ser genérica
+ b) Latência: Qual é o tempo de resposta aceitável para o modelo? Isso dependerá dos requisitos em tempo real do seu app e das expectativas do usuário.
+	ex: Para chatbot uma resposta mais prática. Sacrificar um pouco da qualidade para ter uma resposta mais instantânea
+ c) Preço: Qual é o orçamento para executar o modelo? Considere fatores como o custo por chamada de API, o tamnho do modelo e a frequência de uso.
+
+3.2 Desenvolva casos de teste - como saber que esta gerando o que espero
+3.3 Escreva o prompt incial
+3.4 Teste-o contra exemplos
+3.5 Refine o prompt conforme os resultados
+3.6 Ponha-o em produção
+
+4.Técnicas Básicas
+MARKDOWN - Markdown Syntax é uma sintaxe usada para padronizar e facilitar formatação de texto na web, utilizada em aplicativos como Slack e GitHub. Textos estilizados com Markdown são, na maioria dos casos, apenas texto com caracteres não-alfabéticos, como #, \* e ![](), usados para a configuração de títulos, listas, itálico, negrito e inserção de imagens.
+
+Exemplo:
+# Título <h1>
+## Título <h2>
+### Título <h3>
+#### Título <h4>
+##### Título <h5>
+###### Título <h6>
+
+onde achar exeplos? markdown cheat sheet 
+
+Um texto bem organizado ajuda a pessoa quanto a máquina a entender melhor.
+
+Exemplo:
+<Transcrição>
+{{TRANSCRICAO}}
+</Transcrição>
+
+#Insigths
+
+<Exemplo de Insigth Original>
+texto...
+</Exemplo de Insigth Original>
+
+<Exemplo de Insight Melhorado>
+texto...
+</Exemplo de Insight Melhorado>
+
+
+obs: Se forem documentos muito longos, incluir o documento antes das instruções.
+
+PROMPT DE SISTEMA - configurações da propria LLM
+Diminiu a alucinação e ajuda no nível de qualidade das respostas. Vale a pena considerar
+
+ZERO SHOT
+faz uma pergunta sem nenhum exemplo
+
+ESTIMULO DE PROMPT DIRECIONAL
+usando referências certas. Ex: organize a marcação usando as keyword abaixo como referencias para te guiar:
+https://www.referencias.com.br
+
+FEW SHOT
+coloca titulos e explicações de cada exemplon 
+Ex: pedir para criar um titlo e dar 20 exemplos 
+pode ser reproduzido na parte P panorama
+
+CADEIA DE PENSAMENTO
+Um exemplo da pergunta e como o modelo deve se comportar.
+ex:quantos baloes caberiam em uma sala. Mas qual é o tamanho do balao, formato, em que area especifica.
+para SAS e chatbots no wpp - pode separar as perguntas das respostas em tags XML, para o cliente obter acesso somente as respostas.
+É importante notar que o pensamento não pode acontecer sem resultados! Claude deve produxir seu pensamento para realmente "pensar". - mas possui um custo.
+Tem que mandar o claude produzir esse pensamento, se nao ele nao vai usar como referencia.
+
+CADEIA DE PENSAMENTO CONSTRASTIVA
+de exemplo de modelo da explicacao correta e o modelo de explicacao incorreta, como nao quer que seja.
+
+5.Técnicas Avançadas
+CONSISTENCIA PROPRIA
+o risco de gerar uma linha de raciocinio que nao é a correta - gerando multiplas respostas
+
+ARVORE DE PENSAMENTO
+Imagine tres experts diferentes discutindo possiveis caminhos e soluções
+
+ESQUELETO DE PENSAMENTO
+Feedbacks humanos
+Desenvolve um indice e faz o passo a passo desenvolvendo
+1.atencao
+2.conexao
+3.problema
+
+GERAÇÃO DE CONHECIMENTO
+Gerar um conhecimento que a propria IA gera para isso usar como base para outras respostas.
+Gera um conteudo sintetico e baseado nele, cria outros modelos.
+
+PROMPT MAIUÊTICO
+Pedimos ao modelo dar a resposta e justificar para ele mesmo entender qual erro possa ter cometido.
+
+GERAÇÃO ARGUMENTADA DE - 
+Combina os modelos de linguagem - bem avançado
+
+COMO EVITAR ALUCINAÇÕES
+configurações - customizar chatGPT - como quer que o chatGPT responda 
+Recomendação: ex: Fique a vontade para dizer que voce nao sabe a resposta se nao tiver 100% de certeza ou me informar disso.
+Antes de processar respostas, procure citacoes e insigths
+Se eu quero que ele seja mais factual e parecido com o texto, abaixa a temperatura no chatGPT
+
+6.Exemplos
+#AÇÕES NÃO PERMITIDAS
+
+<Instrucoes>
+#Objetivo
+#Função
+#Interação com o Usuário
+#Base de Conhecimento
+#Regras
+#Processo
+#Rascunhos
+<Instrucoes>
+
+7.Ferramenta geradora de prompt
+Utiliza o codigo bem detalhado com as técnicas e tags aplicadas. E ainda é editável.
+ANTHROP\C

@@ -23,12 +23,12 @@ export class WebhookController {
     @Query('hub.challenge') challenge: string,
     @Query('hub.verify_token') token: string,
   ) {
-    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    const verify_token = process.env.WHATSAPP_VERIFY_TOKEN;
     if (!mode || !token) {
       throw new HttpException('Parâmetros inválidos', HttpStatus.BAD_REQUEST);
     }
 
-    if (mode === 'subscribe' && token === verifyToken) {
+    if (mode === 'subscribe' && token === verify_token) {
       return challenge;
     }
     throw new HttpException(

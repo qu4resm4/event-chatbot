@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -87,7 +87,7 @@ Estrutura de respostas padrão:
     try {
       // Caminho do arquivo
       const filePath = path.join(
-        __dirname,
+        process.cwd(),
         process.env.PATH_ARQUIVO_PARA_BUSCA,
       );
 
@@ -151,6 +151,21 @@ Estrutura de respostas padrão:
     return thread.id;
   }
 
+  async buscarThreadPorId(id_thread) {
+    let threadBuscada;
+    try {
+      threadBuscada = await this.openai.beta.threads.retrieve(id_thread);
+      return true;
+    } catch(error) {
+      if (error.response && error.response.status === 404) {
+        console.log("Thread não encontrada: ", threadBuscada);
+        return false;
+      } else {
+        console.error("Erro inesperado:", error);
+      }
+    }
+  }
+
   async adicionarMensagemNaThread(id_thread: string, mensagem: string) {
     const message = await this.openai.beta.threads.messages.create(id_thread, {
       role: 'user',
@@ -173,20 +188,48 @@ Estrutura de respostas padrão:
 
   async verificarStatusDaRun(id_thread: string, run_id: string) {
     //get https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}
+    console.log('Status da run criada:');
+
     const run = await this.openai.beta.threads.runs.retrieve(id_thread, run_id);
-
     console.log('Status da run criada:', run.status);
-
     //completed
     return run.status;
   }
 
   async obterRespostaDoAssistente(id_thread: string, run_id: string) {
-    //get https://api.openai.com/v1/threads/{thread_id}/messages?run_id=run_id
-    const resposta = await this.openai.beta.threads.messages.list(id_thread, {
+    const mensagemDeRespostaDaRun = await this.openai.beta.threads.messages.list(id_thread, {
       run_id: run_id,
     });
 
-    return resposta;
+    const idDaResposta = mensagemDeRespostaDaRun?.data[0]?.id;
+
+    const mensagemResposta = await this.openai.beta.threads.messages.retrieve(id_thread, idDaResposta);
+
+    // Verifica o tipo do conteúdo da mensagem
+    if (mensagemResposta?.content && Array.isArray(mensagemResposta.content)) {
+      // Procura por conteúdo de texto dentro do array
+      const texto = mensagemResposta.content.find(item => 'text' in item);
+
+      if (texto && 'text' in texto) {
+        console.log("Texto da resposta:", texto.text.value);
+        return texto.text.value;
+      }
+    }
   }
+
+  async speechToText(filePath: any) {
+    try {
+      console.log("ESTÁ SENDO TRANSCRITO")
+      const transcription = await this.openai.audio.transcriptions.create({
+        file: fs.createReadStream(filePath),
+        model: "whisper-1",
+      });
+      console.log("FOI TRANSCRITO: ", transcription.text)
+      return transcription.text
+    } catch (error) {
+      console.log("open => ", error)
+    }
+
+  }
+
 }

@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
+import * as fs from 'fs';
 
 @Controller('webhook')
 export class WebhookController {
@@ -20,32 +21,40 @@ export class WebhookController {
   }
 
   @Post()
-  mensagemRecebida(@Body() mensagemRecebidaDto: any) {
-    console.log(mensagemRecebidaDto);
-    return this.webhookService.resposta(mensagemRecebidaDto);
-  }
-
-  /* @Get('createThread')
-  async createThread() {
-    const threadId = await this.openaiService.criarThread();
-    console.log(threadId);
-
-    return { threadId };
-  } */
-
-  /*  @Get('add-message')
-  async addMessage() {
-    const threadId = 'your-thread-id'; // Substitua pelo ID da thread que você deseja usar
-    const messageId = await this.openaiService.adicionarMensagemNaThread(
-      threadId,
-      'Olá, assistente!',
+  async mensagemRecebida(@Body() mensagemRecebidaDto: any) {
+    console.log(
+      'DTO Recebido pela API Cloud do WhatsAppBunisess: ',
+      JSON.stringify(mensagemRecebidaDto, null, 2),
     );
-    return { messageId };
-  }
 
-  @Get('check-db')
-  async checkDatabase() {
-    await this.databaseService.checkDatabaseConnection();
-    return { message: 'Banco de dados verificado com sucesso' };
-  } */
+    const numeroComercialDoChatBot =
+        mensagemRecebidaDto.entry?.[0].changes?.[0].value?.metadata
+          ?.phone_number_id;
+
+    const tipoDaMensagemRecebida =
+      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0].type;
+
+    // identificando se é uma atualização de status da mensagem enviada
+    const statuses = mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.statuses;
+    if(statuses) {
+      console.log('DTO para atualizar status de mensagens:');
+      console.log("Statuses: ", statuses)
+      console.log("Status da mensagem enviada: ", statuses[0]?.status)
+      return;
+    }
+
+    // identifica se é uma mensagem de texto
+    if(tipoDaMensagemRecebida == "text" && !statuses) {
+      return await this.webhookService.respostaMensagemDeTexto(mensagemRecebidaDto, numeroComercialDoChatBot);
+    }
+
+    // identifica se a mensagem recebida foi um audio
+    if(tipoDaMensagemRecebida == "audio" && !statuses){
+          const mensagemRecebidaID = mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0].id;
+
+        return await this.webhookService.respostaMensagemDeAudio(mensagemRecebidaDto, numeroComercialDoChatBot, mensagemRecebidaID);
+      }
+    console.log('nenhuma condição foi acionada')
+    return;
+  }
 }

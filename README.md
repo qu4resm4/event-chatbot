@@ -1,53 +1,90 @@
 # event-chatbot
 Este repositório contém o código-fonte de um chatbot com IA projetado para oferecer uma experiência mais orgânica e intuitiva na busca por palestras em eventos de grande porte.
 
-Comandos para rodar:
-npm install
+Este chatbot está utilizando o [cronograma de palestras do Web Summit Rio 2025](./training-data) para fornecer as informações.
 
-npx prisma generate
+## AVISO!
+A funcionalidade de responder áudios não funciona com contas de teste grátis da OpenAI API. O recurso de transcrição 'Speech to text' é um recurso pago.
 
-criar um banco de dados postgresql com o nome 'chatbot'
+## Requisitos para executar o projeto:
+- Node.js
+- NPM
+- PostgreSQL
+- Ngrok
+- Conta de desenvolvedor na Meta: https://business.facebook.com/business/loginpage
+- Um App criado e configurado na plataforma de desenvolvedor da Meta.
+- Conta de teste gratuito da OpenAI API: https://platform.openai.com/singup
 
-npx prisma migrate deploy
-
-nest start
-
-ngrok http 3000
-
-Exemplo de .env:
+## Execute o projeto:
+#### 1. Instale as dependências:
 ```
-    DATABASE_URL="postgresql://postgres:846612@localhost:5432/chatbot?schema=public"
+npm install
+```
 
-    WEBHOOK_VERIFY_TOKEN=CHAVEdoWEBHOOK
-    GRAPH_API_TOKEN=SoNaHoraCrieUmaSessao
+#### 2. Gere o cliente prisma:
+```
+npx prisma generate
+```
+
+#### 3. Crie um banco de dados PostgreSQL.
+
+#### 4. Configure as variáveis de ambiente (.env).
+   
+Crie um arquivo '.env' na pasta raiz do projeto.
+
+Copie o seguinte modelo de .env e preencha com as suas informações:
+```
+    # Altere os campos dentro das chaves com suas informações da conexão para conectar ao banco de dados criado
+    DATABASE_URL=postgresql://{username}:{password}@localhost:{port}/{databasename}?schema=public
+
+    # Esta variável é para preencher com o token de segurança desta API, é preciso registrar o domínio desta API e este token de segurança nas configurações do webhook no ambiente de desenvolvedor da Meta
+    WEBHOOK_VERIFY_TOKEN=
+
+    # Esta variável é para preencher com o token da sessão de teste gerado 
+    GRAPH_API_TOKEN=
+
+    # Esta variável é para preencher com o token da API da OpenAI
     OPENAI_API_TOKEN=
-    ID_ASSISTANT=asst_sw6kRSlAgDhGzOv0nrXLyDSc
+
+    # Esta variável é opcional, interrompe o processo automatizado de criar um assistente, utilizará o definido pelo id
+    ID_ASSISTANT=
+
+    # Fixo, não mexa nesta variável.
     PATH_ARQUIVO_PARA_BUSCA=training-data/web_summit_rio_2025_schedule.json
 ```
 
 
-LÓGICA PROCEDURAL DO WEBHOOK
+#### 5. Implemente as migrations no banco de dados:
+```
+npx prisma migrate deploy
+```
 
-*parâmetro recebido: checa se tem uma mensagem de texto no payload
+#### 6. Exponha seu servidor Nest.JS local para a internet criando um Gateway com o Ngrok:
+```
+ngrok http 3000
+```
+A porta 3000 é a padrão do Nest, caso não seja esta a usada altere o valor no comando
 
-*parâmetro recebido: extrair o numero comercial que recebeu a mensagem do corpo da requisição
+#### 7. Acesse sua conta de desenvolvedor da meta e configue o webhook:
 
-*parâmetro recebido: extrair o numero para qual será enviado a resposta
+Acesse https://developers.facebook.com/apps
 
-*parâmetro recebido: extrair id do usuário no payload
+Acesse o seu aplicativo de teste criado.
 
-*whatsapp: requisição de visualizado
+Acesse o produto WhatsApp > Configurações da API, gere o token da sessão e preencha na variável de ambiente "GRAPH_API_TOKEN".
 
-*cache: busca o id da thread no cache e instancia no escopo do webhook
+Acesse o produto Webhooks, selecione o WhatsApp Business Account e configure o webhook, em "URL de Retorno de Chamada" copie a url gerada pelo ngrok depois de executado, em "Token de Verificação" preencha com o o valor de "WEBHOOK_VERIFY_TOKEN" definido anteriormente nas variáveis de ambiente (.env). Aperte em "verificar e salvar" para salvar estas configurações.
 
-*cache: verifica se existe id de thread vinculado ao id od whatsapp {
-se não tiver, *openai: cria uma thread* e vincula os ids no cache,
-}
+#### 8. Acesse sua conta na plataforma da OpenAI API:
+Acesse https://platform.openai.com
 
-openai: cria uma run da thread (url) e associa o id do assistente no body da requisição
+Acesse API Keys.
 
-openai: executa um polling para verificar se a run terminou de ser processada
+Gere uma API Key e preencha a variável de ambiente "OPENAI_API_TOKEN".
 
-openai: busca a mensagem da thread com o parâmetro de filtro para filtrar pelo run_id, ou seja, pegar a mensagem gerada pela run que executou ela (assim vai buscar exatamente a mensagem de resposta do assistente)
+Caso queira definir um Assistant especifico já criado pela plataforma preencha a variável de ambiente "ID_ASSISTANT" com o ID do seu Assistant.
 
-whatsapp: requisição de resposta
+#### 9. Inicie o servidor Nest.JS
+```
+nest start
+```

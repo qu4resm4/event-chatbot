@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CacheService } from 'src/cache/cache.service';
+import { DatabaseService } from 'src/database/database.service';
 import { OpenaiService } from 'src/openai/openai.service';
 import { WhatsappService } from 'src/whatsapp/whatsapp.service';
 
@@ -7,50 +7,52 @@ import { WhatsappService } from 'src/whatsapp/whatsapp.service';
 export class WebhookService {
   constructor(
     private whatsappSrvc: WhatsappService,
-    private cache: CacheService,
+    private database: DatabaseService,
     private openai: OpenaiService,
   ) {}
 
-  async resposta(mensagemRecebidaDto: any) {
-    console.log(
-      'Incoming webhook message:',
-      JSON.stringify(mensagemRecebidaDto, null, 2),
-    );
+  async resposta(mensagemRecebidaDto: any, textoMensagem: string) {
+      const mensagemRecebida =
+        mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0]; 
 
-    const mensagemRecebida =
-      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0];
+      const remetenteDaMensagem = mensagemRecebida.from; 
 
-    const textoMensagem = mensagemRecebida.text.body;
-    const remetenteDaMensagem = mensagemRecebida.from;
+      const idDoRemetente =
+        mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.contacts[0]?.wa_id; 
 
-    const idDoRemetente =
-      mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.contacts?.wa_id;
+      console.log(idDoRemetente);
 
-    if (mensagemRecebida?.type === 'text') {
       const numeroComercialDoChatBot =
         mensagemRecebidaDto.entry?.[0].changes?.[0].value?.metadata
           ?.phone_number_id;
 
-      await this.whatsappSrvc.visualizarMensagem(
-        numeroComercialDoChatBot,
-        mensagemRecebida,
-      );
-
-      // Cache: verificar id do usuário WhatsApp
+      // pega a identificação da thread relacionada ao usuário da mensagem
       let threadDoUsuario =
-        await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+        await this.database.obterIdThreadPorIdWhatsapp(idDoRemetente);
 
-      // Se a thread não existir (false), cria uma nova thread
+      // Se a thread não existir no banco de dados (false), cria uma nova thread
       if (!threadDoUsuario) {
         const idThreadCriada = await this.openai.criarThread();
-        await this.cache.vincularIdWhatsappAoIdThread(
+        await this.database.vincularIdWhatsappAoIdThread(
           idDoRemetente,
           idThreadCriada,
         );
         threadDoUsuario =
-          await this.cache.obterIdThreadPorIdWhatsapp(idDoRemetente);
+          await this.database.obterIdThreadPorIdWhatsapp(idDoRemetente);
       }
 
+      // se a thread não existir na plataforma da openai, cria uma nova e vincula
+      const existeThread = await this.openai.buscarThreadPorId(threadDoUsuario);
+      if (!existeThread) {
+        const idThreadCriada = await this.openai.criarThread();
+        await this.database.atualizarVinculoIdWhatsappComIdThread(
+          idDoRemetente,
+          idThreadCriada,
+        );
+        threadDoUsuario =
+          await this.database.obterIdThreadPorIdWhatsapp(idDoRemetente);
+      }
+      
       // Verifica se a thread foi realmente criada e se é uma string válida
       if (typeof threadDoUsuario !== 'string') {
         throw new Error('Erro: thread do usuário não encontrada ou inválida');
@@ -64,41 +66,61 @@ export class WebhookService {
 
       const idRunCriada = await this.openai.criarRunParaThread(threadDoUsuario);
 
-      let statusDaRun = true;
-      while (statusDaRun) {
-        setTimeout(async () => {
-          const status = await this.openai.verificarStatusDaRun(
-            threadDoUsuario,
-            idRunCriada,
-          );
-          if (status === 'completed') {
-            console.log('Run status completed');
-            statusDaRun = false;
-          }
-        }, 200); // dois milisegundos (0.2s); 1000 = 1s
+      let status = '';
+
+      while (status !== "completed") {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        status = await this.openai.verificarStatusDaRun(
+          threadDoUsuario,
+          idRunCriada,
+        );
       }
 
-      const resposta = await this.openai.obterRespostaDoAssistente(
-        threadDoUsuario,
-        idRunCriada,
-      );
+      if (status === 'completed') {
+        console.log('Run status completed');
+        let respostaDepoisDoStatusCompleto = await this.openai.obterRespostaDoAssistente(
+          threadDoUsuario,
+          idRunCriada,
+        );
+        console.log("Resposta da mensagem: ", respostaDepoisDoStatusCompleto)
+        
+        await this.whatsappSrvc.responderMensagem(
+          numeroComercialDoChatBot,
+          remetenteDaMensagem,
+          respostaDepoisDoStatusCompleto,
+        );
+      }
+  }
 
-      await this.whatsappSrvc.responderMensagem(
-        numeroComercialDoChatBot,
-        remetenteDaMensagem,
-        resposta,
-      );
-    }
+  async respostaMensagemDeTexto(mensagemTextoRecebidaDto: any, numeroComercialDoChatBot){
+    const mensagemRecebidaID = mensagemTextoRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0].id; 
+    await this.whatsappSrvc.visualizarMensagem(
+      numeroComercialDoChatBot,
+      mensagemRecebidaID,
+    );
+
+    const textoMensagem = mensagemTextoRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0].text.body;
+    await this.resposta(mensagemTextoRecebidaDto, textoMensagem)
+
+  }
+
+  async respostaMensagemDeAudio(mensagemAudioRecebidaDto: any, numeroComercialDoChatBot, mensagemRecebidaID) {
+
+    await this.whatsappSrvc.visualizarMensagem(
+      numeroComercialDoChatBot,
+      mensagemRecebidaID,
+    ); 
+
+    const audioID = mensagemAudioRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0].audio.id;
+
+    const caminhoDoArquivo = await this.whatsappSrvc.downloadAudio(audioID, mensagemRecebidaID);
+3
+    const mensagemEmTexto = await this.openai.speechToText(caminhoDoArquivo)
+
+    console.log("Audio transcrito", mensagemEmTexto);
+
+    await this.resposta(mensagemAudioRecebidaDto, mensagemEmTexto)
+    
+    await this.whatsappSrvc.excluirAudio(caminhoDoArquivo);
   }
 }
-// fazer buscar por id pelo prisma do whatsapp/*  vincular o id com o da threadid*/
-/* 
-          TO-DO
-          -- testar se o nest funciona no glitch 
-          -- terminar lógica do webhook
-          -- criar cache e seus métodos.
-          -- métodos de conexão com a API da OpeanAI
-          
-          DONE
-          -- métodos de conexão whatsapp
-*/

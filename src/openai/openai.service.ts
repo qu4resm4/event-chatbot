@@ -219,17 +219,25 @@ Estrutura de respostas padrão:
 
   async speechToText(filePath: any) {
     try {
-      console.log("ESTÁ SENDO TRANSCRITO")
+      console.log("ESTÁ SENDO TRANSCRITO");
+      
+      const startTime = Date.now(); // Marca o tempo inicial
+    
       const transcription = await this.openai.audio.transcriptions.create({
         file: fs.createReadStream(filePath),
         model: "whisper-1",
       });
-      console.log("FOI TRANSCRITO: ", transcription.text)
-      return transcription.text
+    
+      const endTime = Date.now(); // Marca o tempo final
+      const duration = (endTime - startTime) / 1000; // Converte para segundos
+    
+      console.log("FOI TRANSCRITO:", transcription.text);
+      console.log(`Tempo de transcrição: ${duration.toFixed(2)} segundos`);
+    
+      return transcription.text;
     } catch (error) {
-      console.log("open => ", error)
+      console.log("open => ", error);
     }
-
   }
-
+  
 }

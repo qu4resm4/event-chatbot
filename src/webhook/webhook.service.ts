@@ -12,6 +12,8 @@ export class WebhookService {
   ) {}
 
   async resposta(mensagemRecebidaDto: any, textoMensagem: string) {
+    try {
+      const startTimeMetodoResposta = Date.now(); // Marca o tempo inicial da execução do metodo
       const mensagemRecebida =
         mensagemRecebidaDto.entry?.[0]?.changes[0]?.value?.messages?.[0]; 
 
@@ -64,10 +66,12 @@ export class WebhookService {
         textoMensagem,
       );
 
+      const startTimeGeracaoDaRespostaDoAssistente = Date.now(); // Marca o tempo inicial da execução da RUN
       const idRunCriada = await this.openai.criarRunParaThread(threadDoUsuario);
 
       let status = '';
 
+      // se o status for diferente de completo ele continua verificando, se for failed vai ficar agarrado infinitamente ou queue, aqui precisa melhorar a lógica
       while (status !== "completed") {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         status = await this.openai.verificarStatusDaRun(
@@ -76,6 +80,9 @@ export class WebhookService {
         );
       }
 
+      const endTimeGeracaoDaRespostaDoAssistente = Date.now(); // Marca o tempo final da execução da RUN
+
+      // se só sai do looping se for completed então porque aqui tem uma condicional?? 
       if (status === 'completed') {
         console.log('Run status completed');
         let respostaDepoisDoStatusCompleto = await this.openai.obterRespostaDoAssistente(
@@ -89,7 +96,17 @@ export class WebhookService {
           remetenteDaMensagem,
           respostaDepoisDoStatusCompleto,
         );
+
+        const endTimeMetodoResposta = Date.now(); // Marca o tempo final
+        const durationMetodoResposta = (endTimeMetodoResposta - startTimeMetodoResposta) / 1000; // Converte para segundos
+        const durationGeracaoDaRespostaDoAssistente = (endTimeGeracaoDaRespostaDoAssistente - startTimeGeracaoDaRespostaDoAssistente) / 1000; // Converte para segundos
+
+        console.log(`Tempo de execução da geração de resposta do assistente : ${durationGeracaoDaRespostaDoAssistente.toFixed(2)} segundos`);
+        console.log(`Tempo de execução do método : ${durationMetodoResposta.toFixed(2)} segundos`);
       }
+    } catch(error) {
+      console.log("erro no metodo resposta: ", error)
+    }
   }
 
   async respostaMensagemDeTexto(mensagemTextoRecebidaDto: any, numeroComercialDoChatBot){
@@ -105,6 +122,7 @@ export class WebhookService {
   }
 
   async respostaMensagemDeAudio(mensagemAudioRecebidaDto: any, numeroComercialDoChatBot, mensagemRecebidaID) {
+    const startTimeRespostaAudio = Date.now(); // Marca o tempo inicial da execução da RUN
 
     await this.whatsappSrvc.visualizarMensagem(
       numeroComercialDoChatBot,
@@ -122,5 +140,9 @@ export class WebhookService {
     await this.resposta(mensagemAudioRecebidaDto, mensagemEmTexto)
     
     await this.whatsappSrvc.excluirAudio(caminhoDoArquivo);
+    
+    const endTimeMetodoRespostaAudio = Date.now(); // Marca o tempo final
+    const durationMetodoRespostaAudio = (endTimeMetodoRespostaAudio - startTimeRespostaAudio) / 1000; // Converte para segundos
+    console.log(`Tempo de execução do método de responder um audio: ${durationMetodoRespostaAudio.toFixed(2)} segundos`);
   }
 }

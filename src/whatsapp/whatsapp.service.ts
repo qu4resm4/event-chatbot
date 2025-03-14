@@ -76,6 +76,14 @@ export class WhatsappService {
       extensaoArquivo = extensaoArquivo ? extensaoArquivo[1] : 'ogg';
       console.log(`MIME Type: ${mimeType}, File Extension: ${extensaoArquivo}`);
 
+      
+
+      const tmpdir = "/audios";
+      // verifica se a pasta de audio existe
+      if (!fs.existsSync(process.cwd()+tmpdir)) {
+        fs.mkdirSync(process.cwd()+tmpdir);
+      }
+
       const caminhoDoArquivo = path.join(process.cwd(), `audios/media_${fileName}.${extensaoArquivo}`);
 
       // Criar um stream de escrita para salvar o arquivo
